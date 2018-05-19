@@ -5,7 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Marker
-  - Encampment
+  - Map
   layers:
   - Default
   - TransparentFX
@@ -46,7 +46,7 @@ TagManager:
   - name: Background
     uniqueID: 2782567177
     locked: 0
-  - name: Encampment
+  - name: 
     uniqueID: 453111385
     locked: 0
   - name: Player

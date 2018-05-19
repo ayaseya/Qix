@@ -5,19 +5,14 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
 	private Marker m_Marker;
-	private Painter m_Painter;
+	private Map m_Map;
+
 
 	void Awake()
 	{
 		m_Marker = GameObject.FindWithTag("Marker").GetComponent<Marker>();
-
-		Texture2D texture = GameObject.FindWithTag("Encampment")
-							  .GetComponent<SpriteRenderer>()
-							  .sprite
-							  .texture;
-
-		m_Painter = GetComponent<Painter>();
-		m_Painter.SetTexture(texture);
+		m_Map = GameObject.FindWithTag("Map").GetComponent<Map>();
+		m_Map.PreareMap();
 	}
 
 	void Start()
@@ -27,14 +22,15 @@ public class GameManager : MonoBehaviour
 
 	void Update()
 	{
-		m_Marker.Move();
+		if (m_Map.CanMoveTo(m_Marker.GetNextMovePosition()))
+		{
+			m_Marker.Move();
+		}
 		m_Marker.Turn();
 
 		if (IsShiftKeyPressed())
 		{
-			bool success =
-				m_Painter.LineDraw(m_Marker.transform.position,
-								   m_Marker.GetPreviousPosition());
+			m_Map.DrawLine(m_Marker.transform.position);
 		}
 	}
 
