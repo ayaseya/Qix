@@ -5,7 +5,7 @@ using UnityEngine;
 public class Marker : MonoBehaviour
 {
 	private float m_Speed = 4f;
-	private Vector2 m_PrevPosition;
+	private Vector3 m_PrevPosition;
     
 	void Start()
 	{
@@ -17,7 +17,7 @@ public class Marker : MonoBehaviour
 	public void Move()
 	{
 		// プレイヤーの座標を取得
-		Vector2 position = transform.position;
+		Vector3 position = transform.position;
 
 		// 移動前の位置を保存する
 		m_PrevPosition = position;
@@ -66,35 +66,7 @@ public class Marker : MonoBehaviour
 		}
 	}
 
-	// 前のフレームの位置を取得する
-	public Vector2 GetPreviousPosition()
-	{
+	public Vector3 GetPrevousPosition(){
 		return m_PrevPosition;
-	}
-
-	public Vector2 GetNextMovePosition(){
-		// プレイヤーの座標を取得
-        Vector2 position = transform.position;
-
-		// 移動量を加える
-        // 斜め移動を制限するため、いずれかの方向キーの入力のみ処理する
-        if (Input.GetKey(KeyCode.UpArrow))
-        {
-            position.y += m_Speed;
-        }
-        else if (Input.GetKey(KeyCode.DownArrow))
-        {
-            position.y -= m_Speed;
-        }
-        else if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            position.x -= m_Speed;
-        }
-        else if (Input.GetKey(KeyCode.RightArrow))
-        {
-            position.x += m_Speed;
-        }
-
-		return position;
 	}
 }

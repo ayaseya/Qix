@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Marker
   - Map
+  - Qix
+  - Line
   layers:
   - Default
   - TransparentFX
@@ -46,7 +48,7 @@ TagManager:
   - name: Background
     uniqueID: 2782567177
     locked: 0
-  - name: 
+  - name: Qix
     uniqueID: 453111385
     locked: 0
   - name: Player
