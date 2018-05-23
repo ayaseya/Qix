@@ -45,8 +45,8 @@ public class Map : MonoBehaviour
 		if (m_Prefab == null)
 		{
 			m_Prefab = new GameObject[w / m_GridSize, h / m_GridSize];
-			m_Type = new Type[w / m_GridSize, h / m_GridSize];
 		}
+		m_Type = new Type[w / m_GridSize, h / m_GridSize];
 
 		GameObject prefab = null;
 		Type type = Type.FIELD;
@@ -75,7 +75,7 @@ public class Map : MonoBehaviour
 					type = Type.OUTSIDE;
 					prefab = m_OutsidePrefab;
 				}
-                
+
 				//Debug.Log("(" + x*4 + "," + y*4 + ") " + state +"|"+color);
 
 				Vector2 position = new Vector2((float)x * m_GridSize, (float)y * m_GridSize);
@@ -295,6 +295,7 @@ public class Map : MonoBehaviour
 					m_Type[x, y] = Type.AREA;
 					Vector2 position = new Vector2((float)x * m_GridSize, (float)y * m_GridSize);
 					position = Camera.main.ScreenToWorldPoint(position);
+					Destroy(m_Prefab[x, y]);
 					m_Prefab[x, y] = Instantiate(m_AreaPrefab, position, Quaternion.identity);
 					m_Prefab[x, y].transform.parent = transform;
 				}
@@ -367,7 +368,8 @@ public class Map : MonoBehaviour
 		}
 	}
 
-	public bool IsDrawing(){
+	public bool IsDrawing()
+	{
 		return m_IsDrawing;
 	}
 }
