@@ -6,11 +6,14 @@ public class Marker : MonoBehaviour
 {
 	private float m_Speed = 4f;
 	private Vector3 m_PrevPosition;
-    
+	private SpriteRenderer m_Renderer;
+
 	void Start()
 	{
 		// 移動前の初期位置を保存
 		m_PrevPosition = transform.position;
+		m_Renderer = GetComponent<SpriteRenderer>();
+
 	}
 
 	// 移動
@@ -66,7 +69,28 @@ public class Marker : MonoBehaviour
 		}
 	}
 
-	public Vector3 GetPrevousPosition(){
+	// 一つ前の座標を返す
+	public Vector3 GetPrevousPosition()
+	{
 		return m_PrevPosition;
+	}
+
+	public void TakeDamage()
+	{
+		// 点滅によるダメージ演出
+		StartCoroutine(Blink());
+	}
+
+	private IEnumerator Blink()
+	{
+		// 変更前の色のコピーを保存
+		var original = m_Renderer.color;
+
+		// 白色に光らせる
+		m_Renderer.color = new Color(1, 0, 0);
+
+		// 0.1秒待機して元の色に戻す
+		yield return new WaitForSeconds(0.1f);
+		m_Renderer.color = original;
 	}
 }

@@ -5,10 +5,12 @@ using UnityEngine.Events;
 
 public class Qix : MonoBehaviour
 {
-	private Vector2 m_LastVelocity;
+	private Vector3 m_LastVelocity;
 	private Rigidbody2D m_Rigidbody;
 
 	public UnityEvent OnQixTouched;
+
+	private bool m_IsPausing = false;
 
 	void Awake()
 	{
@@ -22,54 +24,53 @@ public class Qix : MonoBehaviour
 
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
-		if(collision.gameObject.CompareTag("Line")){
+		if (collision.gameObject.CompareTag("Line")||
+		    collision.gameObject.CompareTag("Marker"))
+		{
 			OnQixTouched.Invoke();
-
 		}
-		if (collision.gameObject.CompareTag("Marker"))
-        {
-			OnQixTouched.Invoke();
-        }
 
-
-		Vector2 refrectVec = Vector2.Reflect(m_LastVelocity, collision.contacts[0].normal);
+		Vector3 refrectVec = Vector3.Reflect(m_LastVelocity, collision.contacts[0].normal);
 		m_Rigidbody.velocity = refrectVec;
 	}
 
+	// 符号(+-)を取得する
 	private int GetRandamSign()
 	{
 		return Random.Range(0, 1) == 0 ? -1 : 1;
 	}
 
-	public void AddInitialForce(){
-		m_Rigidbody.velocity = new Vector2(Random.Range(64, 96) * GetRandamSign(),
-                                           Random.Range(64, 96) * GetRandamSign());
-	}
-    
-	public void OnPause()
+	public void Resume()
 	{
-		Vector2 velocity = m_Rigidbody.velocity; ;
-		m_Rigidbody.Sleep();
-		StartCoroutine(OnResume(velocity));
+		m_IsPausing = false;
+		m_Rigidbody.WakeUp();
+		m_Rigidbody.velocity = new Vector3(Random.Range(64, 96) * GetRandamSign(),
+										   Random.Range(64, 96) * GetRandamSign());
 	}
 
-	private IEnumerator OnResume(Vector2 velocity)
+	public void TemporaryStop(int frame)
 	{
-		for (int i = 0; i < 15; i++)
+		Vector3 velocity = m_Rigidbody.velocity; 
+		m_Rigidbody.Sleep();
+		StartCoroutine(OnResume(velocity, frame));
+	}
+
+	private IEnumerator OnResume(Vector3 velocity, float frame)
+	{
+		for (int i = 0; i < frame; i++)
 		{
 			yield return null;
 		}
-
-		m_Rigidbody.WakeUp();
-		m_Rigidbody.velocity = velocity;
+		if(!m_IsPausing){
+			m_Rigidbody.WakeUp();
+            m_Rigidbody.velocity = velocity;
+		}
 	}
-
-	public void OnStart()
-    {
-		m_Rigidbody.WakeUp();
-    }
-
-	public void OnStop(){
+    
+	public void Pause()
+	{
+		m_IsPausing = true;
+		m_Rigidbody.velocity = Vector2.zero;
 		m_Rigidbody.Sleep();
 	}
 }

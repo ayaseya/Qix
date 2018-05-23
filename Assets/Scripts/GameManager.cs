@@ -6,13 +6,25 @@ using UnityEngine.UI;
 public class GameManager : MonoBehaviour
 {
 	public Text m_OcupancyRate;
+	public Text m_Message;
+
+	public GameObject m_RemainingLives_1;
+	public GameObject m_RemainingLives_2;
+	public GameObject m_RemainingLives_3;
 
 	private Marker m_Marker;
 	private Map m_Map;
 	private Qix m_Qix;
 
 	private int m_RemainingLives = 3;
-	private float mClearPer = 10.0f;
+	private float mClearPer = 75.0f;
+
+	private bool m_IsPlaying = false;
+
+	private float m_TimeElapsed;
+
+	private Vector3 m_LineStartPoint; // 線引き中に被弾した場合、線引き開始地点に戻すために使用
+
 
 	void Awake()
 	{
@@ -21,7 +33,6 @@ public class GameManager : MonoBehaviour
 
 		//m_Map.PreareMap();
 		m_Qix = GameObject.FindWithTag("Qix").GetComponent<Qix>();
-
 	}
 
 	void Start()
@@ -31,6 +42,12 @@ public class GameManager : MonoBehaviour
 
 	void Update()
 	{
+		// ゲームプレイ中以外はキー入力を排他する
+		if (!m_IsPlaying)
+		{
+			return;
+		}
+
 		// 移動可能か確認
 		if (m_Map.CanMoveTo(m_Marker.transform.position, m_Marker.GetPrevousPosition()))
 		{
@@ -58,13 +75,20 @@ public class GameManager : MonoBehaviour
 		return false;
 	}
 
-	// Mapからのコールバック、線が引き終わったら呼び出される
+	// Mapからのコールバック、線引き開始め時に呼び出される
+	public void OnDrawLineStarted()
+	{
+		m_LineStartPoint = m_Marker.GetPrevousPosition();
+	}
+
+	// Mapからのコールバック、線引き終了時に呼び出される
 	public void OnDrawLineDone()
 	{
 		// 塗りつぶしを開始
 		m_Map.FillClosedArea(m_Qix.transform.position);
 
-		m_Qix.OnPause();
+		// 15フレームだけ移動を停止する
+		m_Qix.TemporaryStop(15);
 	}
 
 	// Mapからのコールバック、塗りつぶしが終わったら呼び出される
@@ -74,83 +98,135 @@ public class GameManager : MonoBehaviour
 		m_OcupancyRate.text = m_Map.GetOcupancyRate().ToString("f1") + " %";
 	}
 
+	// QixとMarker(もしくは引いている線)が接触した時に呼び出される
 	public void OnQixTouched()
 	{
+		// 短時間に続けて呼び出された場合に2回目以降の呼び出しをスキップする
+		m_TimeElapsed += Time.deltaTime;
+		Debug.Log(m_TimeElapsed);
+		if (m_TimeElapsed > 0.0167f)
+		{
+			// 処理をスキップ  
+			return;
+		}
+
+		StartCoroutine(ResetTimer());
+
+		// 被弾演出
+		m_Marker.TakeDamage();
+
+		// 線引き開始地点にMarkerを戻す
+		m_Marker.transform.position = m_Map.IsDrawing() ?
+			m_LineStartPoint :
+			m_Marker.GetPrevousPosition();
+
+		// 線を消す
+		m_Map.EraseLine();
+
+		// 残機を減少させる
 		m_RemainingLives--;
+
+		UpdateRemainingLives();
 	}
+
+	public IEnumerator ResetTimer()
+	{
+		yield return new WaitForSeconds(0.5f);
+		Debug.Log("ResetTimer");
+
+		m_TimeElapsed = 0;
+	}
+
 
 	private IEnumerator GameLoop()
 	{
 		Debug.Log("Loop() E");
-		yield return StartCoroutine(OnGamePrepare());
-		yield return StartCoroutine(OnGamePlay());
-		yield return StartCoroutine(OnGamePause());
-
+		yield return StartCoroutine(Prepare());
+		yield return StartCoroutine(Play());
 
 		if (m_Map.GetOcupancyRate() > mClearPer)
 		{
-			yield return StartCoroutine(OnGameClear());
+			yield return StartCoroutine(GameClear());
 		}
 		else
 		{
-			if (m_RemainingLives <= 0)
-			{
-				yield return StartCoroutine(OnGameOver());
-			}
-			else
-			{
-				yield return StartCoroutine(OnGameResume());
-			}
+			yield return StartCoroutine(GameOver());
 		}
 		Debug.Log("Loop() X");
 	}
 
-	private IEnumerator OnGamePrepare()
+	private IEnumerator Prepare()
 	{
-		Debug.Log("GamePrepare");
+		Debug.Log("GamePrepare() E");
+		m_Message.text = "PRESS SPACE KEY";
 		m_Map.PreareMap();
 		m_OcupancyRate.text = m_Map.GetOcupancyRate().ToString("f1") + " %";
 		m_Marker.transform.position = new Vector3(2, -126, 0);
-		m_Qix.transform.position = new Vector3(0, 0, 0);
-		m_Qix.AddInitialForce();
-		yield return new WaitForSeconds(1.0f);
-	}
+		m_Qix.transform.position = new Vector3(2, 96, 0);
+		m_RemainingLives = 3;
+		UpdateRemainingLives();
 
-	private IEnumerator OnGamePlay()
-	{
-		Debug.Log("GamePlay:");
-		while (m_Map.GetOcupancyRate() < mClearPer&&m_RemainingLives > 1)
+		while (!Input.GetKey(KeyCode.Space))
 		{
-			//|| m_RemainingLives > 1
-			Debug.Log("GamePlay:" + m_Map.GetOcupancyRate() + " " + m_RemainingLives);
-
 			yield return null;
 		}
+		m_Message.text = "";
+		m_Qix.Resume();
+		Debug.Log("GamePrepare() X");
+		yield return null;
 	}
 
-	private IEnumerator OnGamePause()
+	private IEnumerator Play()
 	{
-		Debug.Log("GamePause");
-		yield return new WaitForSeconds(1.0f);
+		Debug.Log("Play() E");
+		m_IsPlaying = true;
+		// 占領率が75%を超えた時、もしくは残機が残っていない時にゲームを中断する
+		while (m_Map.GetOcupancyRate() < mClearPer && m_RemainingLives > 0)
+		{
+			// 毎フレーム上記条件を満たす限りループする
+			yield return null;
+		}
+		m_Qix.Pause();
+		m_IsPlaying = false;
+		Debug.Log("Play() X");
 	}
 
-	private IEnumerator OnGameResume()
-	{
-		Debug.Log("GameResume");
-		yield return new WaitForSeconds(1.0f);
-	}
-
-	private IEnumerator OnGameClear()
+	private IEnumerator GameClear()
 	{
 		Debug.Log("GameClear");
-		//StartCoroutine(GameLoop());
-		yield return new WaitForSeconds(1.0f);
+		m_Message.text = "GAME CLEAR!";
+		yield return new WaitForSeconds(3.0f);
+		StartCoroutine(GameLoop());
 	}
 
-	private IEnumerator OnGameOver()
+	private IEnumerator GameOver()
 	{
 		Debug.Log("GameOver");
-		//StartCoroutine(GameLoop());
-		yield return new WaitForSeconds(1.0f);
+		m_Message.text = "GAME OVER!";
+		yield return new WaitForSeconds(3.0f);
+		StartCoroutine(GameLoop());
+	}
+
+    // 残機表示を更新
+	private void UpdateRemainingLives()
+	{
+		if (m_RemainingLives == 3)
+		{
+			m_RemainingLives_1.GetComponent<Renderer>().enabled = true;
+			m_RemainingLives_2.GetComponent<Renderer>().enabled = true;
+			m_RemainingLives_3.GetComponent<Renderer>().enabled = true;
+		}
+		else if (m_RemainingLives == 2)
+		{
+			m_RemainingLives_3.GetComponent<Renderer>().enabled = false;
+		}
+		else if (m_RemainingLives == 1)
+		{
+			m_RemainingLives_2.GetComponent<Renderer>().enabled = false;
+		}
+		else if (m_RemainingLives == 0)
+		{
+			m_RemainingLives_1.GetComponent<Renderer>().enabled = false;
+		}
 	}
 }
