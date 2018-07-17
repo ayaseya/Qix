@@ -499,6 +499,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_OcupancyRate: {fileID: 2098846933}
   m_Message: {fileID: 1635942485}
+  m_RemainingLives_1: {fileID: 991542907}
+  m_RemainingLives_2: {fileID: 257476874}
+  m_RemainingLives_3: {fileID: 1131599941}
 --- !u!4 &1216883202
 Transform:
   m_ObjectHideFlags: 0
